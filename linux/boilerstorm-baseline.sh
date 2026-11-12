@@ -39,7 +39,13 @@ if [ "$actual_host" != "$EXPECTED_HOST" ]; then
 fi
 # shellcheck disable=SC1091
 . /etc/os-release
-if [ "${ID:-}" != "$EXPECTED_ID" ] || [ "${VERSION_ID:-}" != "$EXPECTED_VERSION" ]; then
+version_ok=0
+if [ "$EXPECTED_ID" = rocky ] && [ "$EXPECTED_VERSION" = 10 ]; then
+  case "${VERSION_ID:-}" in 10|10.*) version_ok=1 ;; esac
+elif [ "${VERSION_ID:-}" = "$EXPECTED_VERSION" ]; then
+  version_ok=1
+fi
+if [ "${ID:-}" != "$EXPECTED_ID" ] || [ "$version_ok" -ne 1 ]; then
   printf 'Expected %s %s; found %s %s. No changes made.\n' \
     "$EXPECTED_ID" "$EXPECTED_VERSION" "${ID:-unknown}" "${VERSION_ID:-unknown}" >&2
   exit 1

@@ -49,6 +49,12 @@ New-Item -ItemType Directory -Path $outDir -ErrorAction Stop | Out-Null
 & icacls.exe $outDir /inheritance:r /grant:r '*S-1-5-32-544:(OI)(CI)F' '*S-1-5-18:(OI)(CI)F' | Out-Null
 if ($LASTEXITCODE -ne 0) { throw 'Could not restrict evidence directory permissions.' }
 $processCreationGuid = '{0CCE922B-69AE-11D9-BED3-505054503030}'
+$auditSubcategories = @(
+    @{ Name='Logon'; Guid='{0CCE9215-69AE-11D9-BED3-505054503030}'; Success=$null; Failure=$true },
+    @{ Name='User Account Management'; Guid='{0CCE9235-69AE-11D9-BED3-505054503030}'; Success=$true; Failure=$true },
+    @{ Name='Security Group Management'; Guid='{0CCE9237-69AE-11D9-BED3-505054503030}'; Success=$true; Failure=$true },
+    @{ Name='Audit Policy Change'; Guid='{0CCE922F-69AE-11D9-BED3-505054503030}'; Success=$true; Failure=$true }
+)
 
 function Save-Text {
     param([string]$Name, [scriptblock]$Command)
@@ -69,6 +75,9 @@ function Snapshot {
     Save-Text "$Prefix-tasks" { Get-ScheduledTask | Select-Object TaskPath, TaskName, State }
     Save-Text "$Prefix-defender" { Get-MpComputerStatus | Select-Object AntivirusEnabled, RealTimeProtectionEnabled, BehaviorMonitorEnabled, AntivirusSignatureVersion, AntivirusSignatureLastUpdated }
     Save-Text "$Prefix-audit" { & auditpol.exe /get "/subcategory:$processCreationGuid" }
+    Save-Text "$Prefix-monitor-audit" {
+        foreach ($item in $auditSubcategories) { & auditpol.exe /get "/subcategory:$($item.Guid)" }
+    }
     if ($ExpectedHost -eq 'CAI-DC01') {
         Save-Text "$Prefix-dc-services" { Get-Service DNS, NTDS, Netlogon | Select-Object Name, Status, StartType }
         Save-Text "$Prefix-dns" { Resolve-DnsName -Server 127.0.0.1 -Name closedai.com -Type SOA }
@@ -198,14 +207,24 @@ Save-Text 'before-commandline-policy' {
     Get-ItemProperty -Path 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System\Audit' -Name ProcessCreationIncludeCmdLine_Enabled -ErrorAction SilentlyContinue |
         Select-Object ProcessCreationIncludeCmdLine_Enabled
 }
+Save-Text 'before-full-audit-policy' { & auditpol.exe /get /category:* }
 
-Run-Required 'Security event log capacity 128 MiB' {
-    & wevtutil.exe sl Security /ms:134217728
+Run-Required 'Security event log capacity 256 MiB' {
+    & wevtutil.exe sl Security /ms:268435456
     if ($LASTEXITCODE -ne 0) { throw 'wevtutil failed' }
 }
 Run-Required 'process creation success auditing' {
     & auditpol.exe /set "/subcategory:$processCreationGuid" /success:enable
     if ($LASTEXITCODE -ne 0) { throw 'auditpol failed' }
+}
+Run-Required 'logon and account-change auditing' {
+    foreach ($item in $auditSubcategories) {
+        $arguments = @('/set', "/subcategory:$($item.Guid)")
+        if ($null -ne $item.Success) { $arguments += "/success:$(if ($item.Success) { 'enable' } else { 'disable' })" }
+        if ($null -ne $item.Failure) { $arguments += "/failure:$(if ($item.Failure) { 'enable' } else { 'disable' })" }
+        & auditpol.exe @arguments
+        if ($LASTEXITCODE -ne 0) { throw "auditpol failed for $($item.Name)" }
+    }
 }
 Run-Required 'process command line in 4688 events' {
     $path = 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System\Audit'

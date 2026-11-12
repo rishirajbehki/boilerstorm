@@ -6,7 +6,7 @@ Host scripts for `cai-fw01` (OPNsense), `CAI-DC01` (Windows Server 2025), `CAI-W
 
 | Host | Default audit | `-Apply` / `--apply` changes | Extra explicit options |
 | --- | --- | --- | --- |
-| DC | Host/OS, services, listeners, firewall, tasks, Defender, process audit, DNS SOA, Domain Admins, Netlogon events | Security log capacity to 128 MiB; process creation audit; command line in 4688; Defender monitoring | GPO/service backup; optional System State backup; implant hunt; signature update; SMBv1 or Spooler disable; interactive `admin` rotation |
+| DC | Host/OS, services, listeners, firewall, tasks, Defender, process audit, DNS SOA, Domain Admins, Netlogon events | Security log capacity to 256 MiB; process creation, failed logon, account/group change and audit-policy change auditing; command line in 4688; Defender monitoring | GPO/service backup; optional System State backup; implant hunt; signature update; SMBv1 or Spooler disable; interactive `admin` rotation |
 | Windows web | Same Windows baseline plus IIS sites/bindings and W3SVC/WAS | Same logging and Defender settings | IIS/service backup; optional web content copy; implant hunt; signature update; SMBv1 disable; interactive `admin` rotation |
 | Ubuntu database/app | OS, listeners, processes, units, root-equivalent accounts, admin groups, cron, SSH policy/key modes, app units | Protected hardlink/symlink settings; private SSH host-key permissions | Service/config backup; optional PostgreSQL/MariaDB dump; implant hunt; package upgrade; interactive `admin` rotation |
 | Rocky mail | Same Linux baseline plus mail units, SELinux mode, firewalld status | Same kernel/key settings | Service/config backup; optional local mailbox copy; implant hunt; security package upgrade; interactive `admin` rotation |
@@ -15,6 +15,7 @@ Host scripts for `cai-fw01` (OPNsense), `CAI-DC01` (Windows Server 2025), `CAI-W
 The scripts leave the **Splunk Universal Forwarder and competition CA** alone. They do not change hostnames, internal IPs, service content, scored accounts, firewall rules, NAT, SSH login methods, LDAP signing, SMB signing, mail authentication, or database authentication. Those changes require service-specific knowledge and a real user test. SMBv1 disable and package upgrades are separate options because they can affect service compatibility or restart services.
 
 See [HUNT-AND-RECOVERY.md](HUNT-AND-RECOVERY.md) for Zerologon, password prompts, implant triage, backups, recovery and the limits of each.
+See [MONITORING.md](MONITORING.md) for repeated local checks, patch inventory, journal retention, and service tests.
 
 ## Run order
 
@@ -75,6 +76,7 @@ The backup and state dump stay under `/root/boilerstorm-<timestamp>`. OPNsense k
 - [Microsoft Defender PowerShell](https://learn.microsoft.com/en-us/powershell/module/defender/set-mppreference?view=windowsserver2025-ps)
 - [Microsoft Process Creation audit subcategory](https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-gpac/77878370-0712-47cd-997d-b07053429f6d)
 - [Microsoft command-line audit policy](https://learn.microsoft.com/windows/client-management/mdm/policy-csp-admx-auditsettings)
+- [Microsoft advanced audit subcategory GUIDs](https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-gpac/77878370-0712-47cd-997d-b07053429f6d)
 - [Microsoft SMB protocol controls](https://learn.microsoft.com/en-us/windows-server/storage/file-server/troubleshoot/detect-enable-and-disable-smbv1-v2-v3)
 - [Ubuntu security updates](https://documentation.ubuntu.com/security/security-updates/)
 - [Rocky DNF](https://docs.rockylinux.org/guides/package_management/dnf_package_manager/)

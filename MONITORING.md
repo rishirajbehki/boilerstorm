@@ -2,6 +2,8 @@
 
 Run the monitor on each matching host after the initial audit and implant hunt. The first pass saves a local comparison point. Treat that point as an observed state, not a clean image. Later passes report changes; they never remove an account, restart a service, change a firewall rule, or install a package. Alerts stay on the host in a root or Administrator-only directory. Keep an operator watching Quotient's external checks and testing actual user workflows.
 
+For one read-only view of all five hosts, use the [dashboard](dashboard/README.md). Its senders run these same monitor passes and send only service states and alert types to `cai-db01` inside the competition LAN. When using a dashboard sender with `-Watch` or `--watch`, do not also start a separate watch for the same host.
+
 ## Windows servers
 
 Run elevated PowerShell on the matching machine:

@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>BoilerStorm host monitor</title>
+<style>
+  :root { color-scheme: dark; font: 15px/1.45 system-ui, sans-serif; background: #10151d; color: #e9eef6 }
+  body { max-width: 1200px; margin: auto; padding: 24px }
+  header { display: flex; align-items: baseline; justify-content: space-between; gap: 20px; border-bottom: 1px solid #344052; margin-bottom: 22px }
+  h1 { font-size: 1.55rem; margin: 0 0 10px }
+  h2 { font-size: 1.1rem; margin: 0 }
+  .muted { color: #aab7c9 }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 16px }
+  article { background: #192332; border: 1px solid #344052; border-radius: 10px; padding: 18px }
+  article > div:first-child { display: flex; align-items: center; justify-content: space-between; gap: 12px }
+  .badge { border-radius: 999px; padding: 3px 10px; font-size: .8rem; font-weight: 700; background: #526071; color: white }
+  .ok { background: #126044 }.warn { background: #915916 }.bad { background: #982e3b }
+  ul { list-style: none; padding: 0; margin: 12px 0 0 }
+  li { border-top: 1px solid #344052; padding: 7px 0; overflow-wrap: anywhere }
+  .service { display: flex; justify-content: space-between; gap: 12px }
+  .active { color: #7bdfb5 }.inactive, .failed { color: #ff9ba7 }
+  .alerts { font-size: .86rem; color: #c9d3e1 }
+  .alerts strong { color: #ffcb7e }
+  footer { margin-top: 20px; color: #aab7c9 }
+</style>
+<header><h1>BoilerStorm host monitor</h1><span id="updated" class="muted">Loading…</span></header>
+<main id="hosts" class="grid"></main>
+<footer>Host reports are advisory. Check Quotient for scored service results; review alerts on the affected host.</footer>
+<script>
+const names = ['cai-fw01', 'CAI-DC01', 'CAI-WEB01', 'cai-db01', 'cai-mail01'];
+function element(tag, text, className) {
+  const node = document.createElement(tag);
+  node.textContent = text;
+  if (className) node.className = className;
+  return node;
+}
+async function refresh() {
+  try {
+    const response = await fetch('/api/status', {cache: 'no-store'});
+    if (!response.ok) throw new Error('Dashboard unavailable');
+    const data = await response.json();
+    const root = document.getElementById('hosts');
+    root.replaceChildren();
+    for (const name of names) {
+      const report = data[name];
+      const card = document.createElement('article');
+      const top = document.createElement('div');
+      top.append(element('h2', name));
+      const age = report ? Math.floor(Date.now() / 1000 - report.seen) : Infinity;
+      const stale = age > (name.startsWith('CAI-') ? 180 : 660);
+      const failing = report && Object.values(report.services).some(s => s !== 'active');
+      const recentAlert = report && report.alerts.some(a => Date.parse(a.time) > Date.now() - 15 * 60 * 1000);
+      top.append(element('span', !report ? 'NO REPORT' : stale ? 'STALE' : failing ? 'CHECK HOST' : recentAlert ? 'ALERTS' : 'REPORTING',
+        'badge ' + (!report || stale ? 'warn' : failing || recentAlert ? 'bad' : 'ok')));
+      card.append(top);
+      card.append(element('div', report ? 'Last report: ' + new Date(report.seen * 1000).toLocaleString() : 'Waiting for first report', 'muted'));
+      if (report) {
+        const services = document.createElement('ul');
+        for (const [service, state] of Object.entries(report.services)) {
+          const item = document.createElement('li');
+          item.className = 'service';
+          item.append(element('span', service), element('strong', state, state));
+          services.append(item);
+        }
+        card.append(services);
+        const alerts = document.createElement('ul');
+        alerts.className = 'alerts';
+        for (const alert of report.alerts.slice(-5).reverse()) {
+          const item = document.createElement('li');
+          item.append(element('strong', alert.kind + ' · '), element('span', alert.detail + ' (' + alert.time + ')'));
+          alerts.append(item);
+        }
+        card.append(alerts);
+      }
+      root.append(card);
+    }
+    document.getElementById('updated').textContent = 'Updated ' + new Date().toLocaleTimeString();
+  } catch (error) {
+    document.getElementById('updated').textContent = error.message;
+  }
+}
+refresh();
+setInterval(refresh, 5000);
+</script>
+</html>

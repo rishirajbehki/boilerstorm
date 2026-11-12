@@ -16,6 +16,7 @@ The scripts leave the **Splunk Universal Forwarder and competition CA** alone. T
 
 See [HUNT-AND-RECOVERY.md](HUNT-AND-RECOVERY.md) for Zerologon, password prompts, implant triage, backups, recovery and the limits of each.
 See [MONITORING.md](MONITORING.md) for repeated local checks, patch inventory, journal retention, and service tests.
+See [dashboard/README.md](dashboard/README.md) for the five-host, read-only monitor view.
 
 ## Run order
 

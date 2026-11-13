@@ -1,6 +1,6 @@
 # Hunt and recovery procedures
 
-These commands run **on the matching competition host**, from the repo directory, using an elevated PowerShell or root shell. Run the audit, hunt and backup before applying changes. All output stays on that host. The first snapshot may already contain Red Team persistence, so it is evidence of starting state, not a known-good image.
+These commands run **on the matching competition host**, from the repo directory, using an elevated PowerShell or root shell. The no-argument wrapper rotates `admin` and applies the fast baseline first, then runs the hunt and service backup in the same invocation. All output stays on that host. The first snapshot follows password rotation and may already contain Red Team persistence; it is not a known-good image.
 
 ## Zerologon on the Windows Server 2025 DC
 
@@ -8,7 +8,7 @@ The DC script checks for vulnerable Netlogon secure-channel exceptions. [Microso
 
 ## Password rotations
 
-The script pauses for the new password at the host console. On Windows, `-RotateAdmin` prompts twice with masked input; on Linux, `--rotate-admin` prompts twice without echo. Mismatched or empty input leaves the password unchanged. The password is not saved to a file or printed. Rotation changes the named `admin` account on that host: domain `CLOSEDAI\admin` on the DC, local `admin` on the web, database and mail servers. Test a new login while the current console remains open. Change the firewall's web `admin` and the team mailbox separately in their UIs. Check Quotient before rotating a scored account; it needs a PCR first.
+The no-argument first run pauses for the new password at the host console. Windows prompts twice with masked input; Linux prompts twice without echo. Mismatched or empty input leaves the password unchanged and stops the first run. The password is not saved to a file or printed. Rotation changes the named `admin` account on that host: domain `CLOSEDAI\admin` on the DC, local `admin` on the web, database and mail servers. Test a new login while the current console remains open. Change the firewall's web `admin` and the team mailbox separately in their UIs. Check Quotient before rotating a scored account; it needs a PCR first. Use the explicit commands below only to retry rotation separately.
 
 Windows examples:
 
@@ -22,7 +22,7 @@ Linux examples:
 
 ## Pre-baked implant hunt
 
-Run these **read-only** before changing or deleting anything:
+The first run includes this read-only hunt after the fast baseline. To rerun the hunt separately:
 
     .\windows\CAI-DC01.ps1 -Hunt
     .\windows\CAI-WEB01.ps1 -Hunt
@@ -38,7 +38,7 @@ The output is a **triage list**. A suspicious location or recently changed file 
 
 ## Backups
 
-Run service/config backups early, after checking free space. The Windows output is a restricted directory under `C:\ProgramData\Boilerstorm`; Linux uses a root-only directory under `/var/tmp`; OPNsense uses `/root`. These are local backups. Do not put them in the public repo.
+The first run backs up service configuration after the fast baseline. Check free space before larger data backups. The Windows output is a restricted directory under `C:\ProgramData\Boilerstorm`; Linux uses a root-only directory under `/var/tmp`; OPNsense uses `/root`. These are local backups. Do not put them in the public repo. To repeat the hunt and backup:
 
     .\windows\CAI-DC01.ps1 -BackupServices -Hunt
     .\windows\CAI-WEB01.ps1 -BackupServices -BackupWebContent -Hunt

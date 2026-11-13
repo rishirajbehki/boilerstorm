@@ -4,15 +4,15 @@ Host scripts for `cai-fw01` (OPNsense), `CAI-DC01` (Windows Server 2025), `CAI-W
 
 ## What changes
 
-| Host | Default audit | `-Apply` / `--apply` changes | Extra explicit options |
-| --- | --- | --- | --- |
-| DC | Host/OS, services, listeners, firewall, tasks, Defender, process audit, DNS SOA, Domain Admins, Netlogon events | Security log capacity to 256 MiB; process creation, failed logon, account/group change and audit-policy change auditing; command line in 4688; Defender monitoring | GPO/service backup; optional System State backup; implant hunt; signature update; SMBv1 or Spooler disable; interactive `admin` rotation |
-| Windows web | Same Windows baseline plus IIS sites/bindings and W3SVC/WAS | Same logging and Defender settings | IIS/service backup; optional web content copy; implant hunt; signature update; SMBv1 disable; interactive `admin` rotation |
-| Ubuntu database/app | OS, listeners, processes, units, root-equivalent accounts, admin groups, cron, SSH policy/key modes, app units | Protected hardlink/symlink settings; private SSH host-key permissions | Service/config backup; optional PostgreSQL/MariaDB dump; implant hunt; package upgrade; interactive `admin` rotation |
-| Rocky mail | Same Linux baseline plus mail units, SELinux mode, firewalld status | Same kernel/key settings | Service/config backup; optional local mailbox copy; implant hunt; security package upgrade; interactive `admin` rotation |
-| OPNsense firewall | Local config backup; version, interfaces, routes, active rules/NAT, listeners, processes, services | **No automatic rule change** until scored ports, NAT and management path are known | Change `admin` in the UI after backup and fresh-login verification |
+| Host | No-argument first run | Separate options |
+| --- | --- | --- |
+| DC | Prompt for domain `admin` password; snapshot; enable security auditing, 4688 command lines and Defender monitoring; increase Security log capacity; disable SMBv1 server and Print Spooler; then hunt and back up service definitions, GPOs and DNS records | Defender signature update; optional System State backup |
+| Windows web | Prompt for local `admin` password; snapshot; apply the same logging and Defender baseline; disable SMBv1 server; then hunt and back up services and IIS configuration | Defender signature update; optional web content copy |
+| Ubuntu database/app | Prompt for local `admin` password; snapshot; enable protected hardlink/symlink settings and restrict private SSH host keys; then hunt and back up running units and common service configuration | Optional PostgreSQL/MariaDB dump and package upgrade |
+| Rocky mail | Prompt for local `admin` password; apply the same Linux baseline; then hunt and back up running units and common service configuration | Optional mailbox copy and security package upgrade |
+| OPNsense firewall | Back up local config and record version, interfaces, routes, active rules/NAT, listeners, processes and services | Change `admin` in the UI after backup and fresh-login verification |
 
-The scripts leave the **Splunk Universal Forwarder and competition CA** alone. They do not change hostnames, internal IPs, service content, scored accounts, firewall rules, NAT, SSH login methods, LDAP signing, SMB signing, mail authentication, or database authentication. Those changes require service-specific knowledge and a real user test. SMBv1 disable and package upgrades are separate options because they can affect service compatibility or restart services.
+The scripts leave the **Splunk Universal Forwarder and competition CA** alone. They do not change hostnames, internal IPs, service content, scored accounts, firewall rules, NAT, SSH login methods, LDAP signing, SMB signing, mail authentication, or database authentication. Those changes require service-specific knowledge and a real user test. The Windows first run disables the SMBv1 server (and DC Spooler); confirm no scored workflow depends on them. OS package upgrades remain separate because they can restart scored services.
 
 See [HUNT-AND-RECOVERY.md](HUNT-AND-RECOVERY.md) for Zerologon, password prompts, implant triage, backups, recovery and the limits of each.
 See [MONITORING.md](MONITORING.md) for repeated local checks, patch inventory, journal retention, and service tests.
@@ -21,26 +21,22 @@ See [dashboard/README.md](dashboard/README.md) for the five-host, read-only moni
 ## Run order
 
 1. On the machine's own console, identify it and read its actual Quotient checks. Verify a route back in, and confirm `admin` is not a scored account before rotation. Do not run two operators on the same shared Guacamole session.
-2. Download the repository through the competition proxy. Run the host wrapper with no arguments first to capture a local before-state.
-3. Review the audit files **on that host**. Then use `-Apply` or `--apply`. It creates a backup/snapshot before changes. Do not copy the output off-network except permitted screenshots for submissions.
-4. Test the real service from the relevant path and wait for its next Quotient result before using an extra option or starting the next host.
-5. Optional package upgrades, SMBv1, Spooler, and password rotation are separate decisions. Package upgrades can take several minutes and restart services. A fresh login must be tested immediately after password rotation.
+2. Download the repository through the competition proxy. Run the matching host wrapper with no arguments. It prompts for a new `admin` password, applies the fast baseline, then hunts and backs up services. OPNsense has a backup/inventory command and a manual UI password change.
+3. Keep the current console open and test a fresh login and the real scored service. Check the next Quotient result. Review the hunt and backup files **on that host**; the starting image may already contain implants. Do not copy the output off-network except permitted screenshots for submissions.
+4. Start the host monitor or dashboard sender. Use `-AuditOnly` or `--audit-only` for a no-change snapshot; explicit options run only the selected actions.
+5. Check free space before a web content, database, mailbox or System State backup. Do package and firmware upgrades only after a service test and recovery route; package scripts may restart services.
 
 ### Windows (Administrator PowerShell on the matching host)
 
 ```powershell
-# Read-only audit
+# First run on the matching host: password prompt, baseline, hunt, service backup
 .\windows\CAI-DC01.ps1
 .\windows\CAI-WEB01.ps1
 
-# Conservative baseline on the corresponding machine
-.\windows\CAI-DC01.ps1 -Apply
-.\windows\CAI-WEB01.ps1 -Apply
-
-# Examples of separate changes, after service/account checks
+# No-change snapshot or separate action
+.\windows\CAI-DC01.ps1 -AuditOnly
 .\windows\CAI-DC01.ps1 -Apply -UpdateSignatures
-.\windows\CAI-WEB01.ps1 -Apply -DisableSmb1
-.\windows\CAI-DC01.ps1 -RotateAdmin
+.\windows\CAI-WEB01.ps1 -BackupServices -BackupWebContent
 ```
 
 PowerShell's execution policy may prevent local scripts from running. Use the operating system's supported per-process policy if approved by the team; do not permanently weaken policy. Windows outputs are under `C:\ProgramData\Boilerstorm\<host>-<timestamp>-<random>`. The firewall export is `firewall-before.wfw` in that directory. The script does **not** import it automatically; restoring firewall policy is a deliberate console action.
@@ -48,18 +44,15 @@ PowerShell's execution policy may prevent local scripts from running. Use the op
 ### Linux (root shell on the matching host)
 
 ```sh
-# Read-only audit
+# First run on the matching host: password prompt, baseline, hunt, service backup
 bash linux/cai-db01.sh
 bash linux/cai-mail01.sh
 
-# Conservative baseline
-bash linux/cai-db01.sh --apply
-bash linux/cai-mail01.sh --apply
-
-# Separate, potentially disruptive steps
+# No-change snapshot or separate action
+bash linux/cai-db01.sh --audit-only
 bash linux/cai-db01.sh --apply --upgrade-packages
 bash linux/cai-mail01.sh --apply --upgrade-packages
-bash linux/cai-mail01.sh --rotate-admin
+bash linux/cai-db01.sh --backup-services --backup-data
 ```
 
 Linux outputs and any previous baseline sysctl file stay in `/var/tmp/boilerstorm-<host>-<timestamp>` with root-only directory access. Package upgrades do not reboot automatically, but package scripts may restart services. The operator must check the actual app, mail, and database workflows immediately afterward.

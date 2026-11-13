@@ -174,18 +174,6 @@ backup_service_state() {
   printf 'Service backup complete: %s/service-backup\n' "$out"
 }
 
-snapshot before
-if [ "$hunt" -eq 1 ]; then
-  EXPECTED_HOST="$EXPECTED_HOST" HUNT_OUT="$out/hunt" bash ./hunt.sh
-fi
-if [ "$verify_packages" -eq 1 ]; then
-  if [ "$ID" = ubuntu ]; then
-    dpkg -V > "$out/hunt/package-verify.txt" 2>&1 || echo "dpkg exit $?: inspect package-verify.txt" > "$out/hunt/package-verify-status.txt"
-  else
-    rpm -Va > "$out/hunt/package-verify.txt" 2>&1 || echo "rpm exit $?: inspect package-verify.txt" > "$out/hunt/package-verify-status.txt"
-  fi
-fi
-if [ "$backup_services" -eq 1 ]; then backup_service_state; fi
 if [ "$rotate_admin" -eq 1 ]; then
   if ! getent passwd admin >/dev/null; then
     echo 'admin account not found; password unchanged.' >&2
@@ -207,6 +195,18 @@ if [ "$rotate_admin" -eq 1 ]; then
   unset new_password confirm_password
   echo 'Local admin password changed. Verify a fresh login before leaving the console.'
 fi
+snapshot before
+if [ "$hunt" -eq 1 ]; then
+  EXPECTED_HOST="$EXPECTED_HOST" HUNT_OUT="$out/hunt" bash ./hunt.sh
+fi
+if [ "$verify_packages" -eq 1 ]; then
+  if [ "$ID" = ubuntu ]; then
+    dpkg -V > "$out/hunt/package-verify.txt" 2>&1 || echo "dpkg exit $?: inspect package-verify.txt" > "$out/hunt/package-verify-status.txt"
+  else
+    rpm -Va > "$out/hunt/package-verify.txt" 2>&1 || echo "rpm exit $?: inspect package-verify.txt" > "$out/hunt/package-verify-status.txt"
+  fi
+fi
+if [ "$backup_services" -eq 1 ]; then backup_service_state; fi
 if [ "$apply" -ne 1 ]; then
   printf 'Audit complete: %s\n' "$out"
   if [ "$rotate_admin" -eq 1 ]; then echo 'Admin password changed; baseline settings unchanged.'; else echo 'No baseline settings changed.'; fi

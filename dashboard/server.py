@@ -61,7 +61,7 @@ def make_handler(state_dir, bind):
             self.wfile.write(body)
 
         def do_GET(self):
-            if self.client_address[0] not in (bind, "127.0.0.1", "::1"):
+            if self.client_address[0] not in (*addresses.values(), "127.0.0.1", "::1"):
                 self.respond(403)
                 return
             if self.path == "/":
@@ -115,9 +115,13 @@ def main():
     parser.add_argument("--bind", default="127.0.0.1")
     parser.add_argument("--port", type=int, default=8765)
     args = parser.parse_args()
+    if args.state.is_symlink():
+        parser.error("Refusing a symlinked state directory")
     args.state.mkdir(mode=0o700, parents=True, exist_ok=True)
     os.chmod(args.state, 0o700)
     keyfile = args.state / "keys.json"
+    if any((args.state / name).is_symlink() for name in ("keys.json", "addresses.json", "status.json")):
+        parser.error("Refusing a symlinked state file")
     if args.action == "init":
         if keyfile.exists():
             parser.error(f"Refusing to replace existing keys: {keyfile}")
@@ -145,7 +149,7 @@ def main():
     if args.bind not in ("127.0.0.1", addresses["cai-db01"]):
         parser.error("Bind only to loopback or the cai-db01 LAN address")
     server = HTTPServer((args.bind, args.port), make_handler(args.state, args.bind))
-    print(f"Dashboard: http://{args.bind}:{args.port}/ (view from cai-db01 only)", flush=True)
+    print(f"Dashboard: http://{args.bind}:{args.port}/ (view from configured team hosts)", flush=True)
     server.serve_forever()
 
 

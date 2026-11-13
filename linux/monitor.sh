@@ -23,6 +23,7 @@ fi
 
 umask 077
 root="/var/lib/boilerstorm-monitor-$EXPECTED_HOST"
+[ ! -L "$root" ] || { echo 'Refusing a symlinked monitor directory.' >&2; exit 1; }
 mkdir -p "$root"
 chmod 700 "$root"
 alerts="$root/alerts.tsv"
@@ -38,7 +39,7 @@ alert() {
 if [ ! -e "$units" ]; then
   if [ "$EXPECTED_HOST" = cai-db01 ]; then pattern='^(postgresql|mysql|mariadb|redis|nginx|apache2|httpd)';
   else pattern='^(postfix|dovecot|httpd|nginx|roundcube)'; fi
-  systemctl list-units --all --type=service --no-legend --plain --no-pager |
+  systemctl list-units --type=service --state=active --no-legend --plain --no-pager |
     awk '{if ($1 ~ /\.service$/) print $1; else if ($2 ~ /\.service$/) print $2}' |
     grep -E "$pattern" > "$units" || true
   printf 'Review and add the actual scored application units to %s\n' "$units"

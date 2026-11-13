@@ -10,7 +10,7 @@ repo=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
 keyfile=/root/.boilerstorm-dashboard-key
 
 if [ "${1:-}" = --init ]; then
-  [ ! -e "$keyfile" ] || { echo "Key already exists: $keyfile" >&2; exit 1; }
+  [ ! -e "$keyfile" ] && [ ! -L "$keyfile" ] || { echo "Key already exists: $keyfile" >&2; exit 1; }
   printf 'Enter the %s dashboard key printed by cai-db01: ' "$EXPECTED_HOST" > /dev/tty
   trap 'stty echo < /dev/tty' 0 1 2 3 15
   stty -echo < /dev/tty

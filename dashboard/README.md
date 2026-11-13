@@ -2,7 +2,7 @@
 
 This is a read-only browser view of the existing host monitors. It shows each host's last report, critical service state and recent alert **types**. The full alert details remain on the host. It does not change services, accept commands, query Quotient or replace its scored-service checks.
 
-Run the hub on `cai-db01` inside the competition LAN. It uses Python 3's standard library and keeps its state in a private directory under the current user's home. The three senders use the existing monitors; no data is sent outside the competition network. Reports are HMAC-signed with a different key per host. The LAN traffic is not encrypted, so send only the included status and alert-type summaries.
+Run the hub on `cai-db01` inside the competition LAN. It uses Python 3's standard library and keeps its state in a private directory under the current user's home. The host senders use the existing monitors; no data is sent outside the competition network. Reports are HMAC-signed with a different key per host. The LAN traffic is not encrypted, so send only the included status and alert-type summaries.
 
 ## Start the hub on `cai-db01`
 
@@ -13,7 +13,9 @@ python3 dashboard/server.py init
 python3 dashboard/server.py serve --bind <cai-db01-LAN-IP>
 ```
 
-`init` asks for the five host LAN addresses, prints five 22-character host keys **once**, and saves both under `~/.boilerstorm-dashboard/`. Keep these files on `cai-db01`. Manually enter each host's own key at its console; do not put keys or addresses in Git or tickets. `init` refuses to replace existing keys. Open `http://<cai-db01-LAN-IP>:8765/` **in a browser on `cai-db01`**. The hub denies page requests from other hosts. If port 8765 is already occupied, stop and review the conflict instead of changing a scored service.
+`init` asks for the five host LAN addresses, prints five 22-character host keys **once**, and saves both under `~/.boilerstorm-dashboard/`. Keep these files on `cai-db01`. Manually enter each host's own key at its console; do not put keys or addresses in Git or tickets. `init` refuses to replace existing keys. Replace angle-bracketed examples with the real LAN address before running them. Open `http://<cai-db01-LAN-IP>:8765/` **in a browser on either Windows host**, or another configured team host with a browser. The hub denies page requests from other addresses. If port 8765 is already occupied, stop and review the conflict instead of changing a scored service.
+
+If the page does not load, check `ss -lntp` on `cai-db01` and `Test-NetConnection <cai-db01-LAN-IP> -Port 8765` on the Windows host. Review the local firewall and LAN route before changing any rule; port 8765 must stay off the WAN.
 
 ## Start senders
 

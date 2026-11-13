@@ -22,6 +22,7 @@ if [ "$interval" -lt 60 ] || [ "$interval" -gt 3600 ]; then echo 'Interval must 
 
 umask 077
 root=/root/boilerstorm-monitor
+[ ! -L "$root" ] || { echo 'Refusing a symlinked monitor directory.' >&2; exit 1; }
 mkdir -p "$root"
 chmod 700 "$root"
 alerts="$root/alerts.tsv"

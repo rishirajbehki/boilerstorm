@@ -44,6 +44,7 @@ if (($SystemStateTarget -or $BackupWebContent) -and -not $BackupServices) {
 $stamp = Get-Date -Format 'yyyyMMdd-HHmmss'
 $baseDir = Join-Path $env:ProgramData 'Boilerstorm'
 New-Item -ItemType Directory -Path $baseDir -Force | Out-Null
+if ((Get-Item -LiteralPath $baseDir).Attributes -band [IO.FileAttributes]::ReparsePoint) { throw 'Refusing a reparse-point output directory.' }
 $outDir = Join-Path $baseDir "$actualHost-$stamp-$([guid]::NewGuid().ToString('N').Substring(0,8))"
 New-Item -ItemType Directory -Path $outDir -ErrorAction Stop | Out-Null
 & icacls.exe $outDir /inheritance:r /grant:r '*S-1-5-32-544:(OI)(CI)F' '*S-1-5-18:(OI)(CI)F' | Out-Null

@@ -216,6 +216,7 @@ fi
 # These kernel settings are local filesystem protections and do not change
 # network paths, authentication methods, or business application config.
 target=/etc/sysctl.d/90-boilerstorm-baseline.conf
+if [ -L "$target" ]; then echo 'Refusing a symlinked baseline config.' >&2; exit 1; fi
 if [ -e "$target" ]; then cp -p "$target" "$out/sysctl-before.conf"; fi
 printf 'fs.protected_hardlinks = 1\nfs.protected_symlinks = 1\n' > "$target"
 chmod 644 "$target"

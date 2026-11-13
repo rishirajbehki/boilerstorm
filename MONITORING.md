@@ -44,7 +44,7 @@ EXPECTED_HOST=cai-db01 bash linux/monitor.sh --watch
 EXPECTED_HOST=cai-mail01 bash linux/monitor.sh --watch
 ```
 
-The default watch interval is five minutes; `--interval 60` uses one minute. Omit `--watch` for one pass; the shell process must remain running for continuous checks. The first run creates `/var/lib/boilerstorm-monitor-<host>/critical-units.txt` from installed role units. **Add the actual application, database, mail, webmail and chat unit names** after inspecting the host. The monitor reports failed or stopped units, changes to systemd units, cron, accounts, PAM, sudoers, SSH settings and authorized keys, authentication events, journal errors, and low disk space. It stores diffs and alerts locally. The initial file hash list can already include a pre-baked implant; compare it with the hunt output before trusting it.
+The default watch interval is five minutes; `--interval 60` uses one minute. Omit `--watch` for one pass; the shell process must remain running for continuous checks. The first run creates `/var/lib/boilerstorm-monitor-<host>/critical-units.txt` from active role units. **Add the actual application, database, mail, webmail and chat unit names** after inspecting the host. The monitor reports failed or stopped units, changes to systemd units, cron, accounts, PAM, sudoers, SSH settings and authorized keys, authentication events, journal errors, and low disk space. It stores diffs and alerts locally. The initial file hash list can already include a pre-baked implant; compare it with the hunt output before trusting it.
 
 If the journal is not persistent, enable bounded disk retention after checking available space:
 

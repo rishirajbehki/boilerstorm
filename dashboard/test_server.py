@@ -8,7 +8,9 @@ import sys
 from tempfile import TemporaryDirectory
 from threading import Thread
 from time import time
+from types import SimpleNamespace
 import unittest
+from unittest.mock import Mock
 from urllib.error import HTTPError
 from urllib.request import Request, urlopen
 
@@ -16,6 +18,17 @@ from server import HOSTS, make_handler, parse_report
 
 
 class DashboardTests(unittest.TestCase):
+    def test_view_is_limited_to_configured_hosts(self):
+        with TemporaryDirectory() as directory:
+            state = Path(directory)
+            (state / "keys.json").write_text(json.dumps({host: "test-key" for host in HOSTS}))
+            (state / "addresses.json").write_text(json.dumps({host: f"10.1.1.{i}" for i, host in enumerate(HOSTS, 1)}))
+            handler = make_handler(state, "10.1.1.4")
+            for source, expected in (("10.1.1.2", 200), ("10.1.1.99", 403)):
+                request = SimpleNamespace(client_address=(source, 1234), path="/api/status", respond=Mock())
+                handler.do_GET(request)
+                self.assertEqual(request.respond.call_args.args[0], expected)
+
     def test_init_keeps_addresses_local(self):
         with TemporaryDirectory() as directory:
             inputs = "".join(f"10.1.1.{i}\n" for i in range(1, 6))

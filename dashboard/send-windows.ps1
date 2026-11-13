@@ -15,6 +15,7 @@ $root = Join-Path $env:ProgramData 'Boilerstorm'
 $keyDir = Join-Path $root 'dashboard'
 $keyFile = Join-Path $keyDir 'key'
 if ($Init) {
+    if ((Test-Path -LiteralPath $root) -and ((Get-Item -LiteralPath $root).Attributes -band [IO.FileAttributes]::ReparsePoint)) { throw 'Refusing a reparse-point output directory.' }
     New-Item -ItemType Directory -Path $keyDir -Force | Out-Null
     if ((Get-Item -LiteralPath $keyDir).Attributes -band [IO.FileAttributes]::ReparsePoint) { throw 'Refusing a reparse-point key directory.' }
     & icacls.exe $keyDir /inheritance:r /grant:r '*S-1-5-32-544:(OI)(CI)F' '*S-1-5-18:(OI)(CI)F' | Out-Null

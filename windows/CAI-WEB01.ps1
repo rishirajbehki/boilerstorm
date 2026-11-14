@@ -17,9 +17,10 @@ if ($firstRun) {
     $RotateAdmin = $true
     $DisableSmb1 = $true
 }
+if ($Apply -or $RotateAdmin) { $BackupServices = $true }
 & (Join-Path $PSScriptRoot 'Invoke-BoilerstormBaseline.ps1') -ExpectedHost CAI-WEB01 -Apply:$Apply -UpdateSignatures:$UpdateSignatures -DisableSmb1:$DisableSmb1 -RotateAdmin:$RotateAdmin -BackupServices:$BackupServices -BackupWebContent:$BackupWebContent -Hunt:$Hunt
 if (-not $?) { exit 1 }
 if ($firstRun) {
-    & (Join-Path $PSScriptRoot 'Invoke-BoilerstormBaseline.ps1') -ExpectedHost CAI-WEB01 -Hunt -BackupServices
+    & (Join-Path $PSScriptRoot 'Invoke-BoilerstormBaseline.ps1') -ExpectedHost CAI-WEB01 -Hunt
     if (-not $?) { exit 1 }
 }

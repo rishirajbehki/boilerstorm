@@ -185,12 +185,12 @@ function Rotate-AdminPassword {
     Write-Host 'Admin password changed. Verify a fresh login before leaving this console.'
 }
 
-if ($RotateAdmin) { Rotate-AdminPassword }
 Snapshot 'before'
 if ($Hunt) {
     & (Join-Path $PSScriptRoot 'Find-Implants.ps1') -ExpectedHost $ExpectedHost -OutputDir (Join-Path $outDir 'hunt')
 }
 if ($BackupServices) { Backup-ServiceState }
+if ($RotateAdmin) { Rotate-AdminPassword }
 if (-not $Apply) {
     Write-Host "Audit complete: $outDir"
     if ($RotateAdmin) { Write-Host 'Admin password changed; baseline settings unchanged.' }

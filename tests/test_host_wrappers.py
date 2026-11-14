@@ -39,9 +39,9 @@ ConvertTo-Json -Compress
                 self.assertTrue(first[0]['Smb1'])
                 self.assertEqual(first[0]['Spooler'], host == 'CAI-DC01')
                 self.assertFalse(first[0]['Hunt'])
-                self.assertFalse(first[0]['Backup'])
+                self.assertTrue(first[0]['Backup'])
                 self.assertTrue(first[1]['Hunt'])
-                self.assertTrue(first[1]['Backup'])
+                self.assertFalse(first[1]['Backup'])
                 self.assertFalse(first[1]['Apply'])
                 audit, = run('-AuditOnly')
                 self.assertFalse(audit['Apply'])
@@ -49,6 +49,12 @@ ConvertTo-Json -Compress
                 explicit, = run('-Hunt')
                 self.assertTrue(explicit['Hunt'])
                 self.assertFalse(explicit['Apply'])
+                applied, = run('-Apply')
+                self.assertTrue(applied['Apply'])
+                self.assertTrue(applied['Backup'])
+                rotated, = run('-RotateAdmin')
+                self.assertTrue(rotated['Rotate'])
+                self.assertTrue(rotated['Backup'])
 
     def test_linux_first_run_and_explicit_modes(self):
         for host in ('cai-db01', 'cai-mail01'):
@@ -65,9 +71,11 @@ ConvertTo-Json -Compress
                     self.assertEqual(result.returncode, 0, result.stderr)
                     return result.stdout.splitlines()
 
-                self.assertEqual(run(), ['CALL <--rotate-admin> <--apply>', 'CALL <--hunt> <--backup-services>'])
+                self.assertEqual(run(), ['CALL <--rotate-admin> <--apply> <--backup-services>', 'CALL <--hunt>'])
                 self.assertEqual(run('--audit-only'), ['CALL <>'])
                 self.assertEqual(run('--hunt', '--backup-services'), ['CALL <--hunt> <--backup-services>'])
+                self.assertEqual(run('--apply'), ['CALL <--apply> <--backup-services>'])
+                self.assertEqual(run('--rotate-admin'), ['CALL <--rotate-admin> <--backup-services>'])
 
 
 if __name__ == '__main__':
